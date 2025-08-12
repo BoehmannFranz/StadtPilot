@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3D Kleinstadt Simulation – Offline (ESM)</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    #ui {
+      position: fixed; top: 12px; left: 12px; z-index: 10;
+      display: flex; flex-direction: column; gap: 8px; 
+      background: rgba(255,255,255,0.9); padding: 12px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      backdrop-filter: blur(6px);
+      user-select: none;
+    }
+    #ui h1 { font-size: 16px; margin: 0 0 4px 0; }
+    #ui .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tool { 
+      border: 1px solid rgba(0,0,0,0.15); border-radius: 10px; padding: 8px 10px; 
+      background: white; cursor: grab; font-weight: 600;
+    }
+    .tool:active { cursor: grabbing; }
+    .tool.active { background: #101828; color: #fff; }
+    button.ctrl { border: 1px solid rgba(0,0,0,0.15); border-radius: 10px; padding: 8px 10px; background: white; font-weight: 600; cursor: pointer; }
+    #legend {
+      position: fixed; bottom: 12px; left: 12px; z-index: 10;
+      background: rgba(255,255,255,0.9); padding: 10px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      width: 280px; font-size: 12px;
+    }
+    #legend .bar { height: 12px; background: linear-gradient(90deg, #d92d20 0%, #f79009 40%, #12b76a 100%); border-radius: 6px; margin: 6px 0; }
+    #hud { position: fixed; top: 12px; right: 12px; z-index: 10; background: rgba(0,0,0,0.65); color: #fff; padding: 10px 12px; border-radius: 10px; font-size: 12px; line-height: 1.3; max-width: 380px; }
+    #ghost { position: fixed; pointer-events: none; z-index: 12; display: none; }
+    #ghost .pill { background: rgba(16,24,40,.9); color: #fff; padding: 6px 10px; border-radius: 999px; font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.2); }
+    #warn { position: fixed; bottom: 12px; right: 12px; background: rgba(0,0,0,.75); color:#fff; padding:8px 10px; border-radius:8px; font-size:12px; z-index:10; display:none;}
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <h1>3D-Kleinstadt – Ziehen, Platzieren & Bewerten</h1>
+    <div class="row">
+      <div id="tool-fire" class="tool" draggable="true" title="Ziehen & in die Stadt fallen lassen (Radius 2000 m)">🚒 Feuerwache</div>
+      <div id="tool-kita" class="tool" draggable="true" title="Ziehen & in die Stadt fallen lassen (Radius 100 m)">👶 Kita</div>
+      <div id="tool-school" class="tool" draggable="true" title="Ziehen & in die Stadt fallen lassen (Radius 600 m)">🏫 Schule</div>
+      <button id="erase" class="ctrl" title="Letztes Gebäude entfernen">↩︎ Rückgängig</button>
+      <button id="reset" class="ctrl" title="Alles zurücksetzen">🗑️ Reset</button>
+    </div>
+    <div style="font-size:12px;opacity:.85;margin-top:4px;">
+      Tipp: Werkzeug <b>ziehen & fallen lassen</b> – oder Werkzeug anklicken und dann in die Karte <b>klicken</b>. Maus ziehen/scrollen: Kamera.
+    </div>
+  </div>
+
+  <div id="legend">
+    <div><strong>Zufriedenheits-Heatmap</strong> (sofort aktualisiert)</div>
+    <div class="bar"></div>
+    <div style="display:flex; justify-content:space-between;">
+      <span>niedrig</span><span>mittel</span><span>hoch</span>
+    </div>
+    <div style="margin-top:6px; opacity:.8;">
+      Anteil erfüllter Bedürfnisse (🚒, 👶, 🏫) je Kachel.
+    </div>
+  </div>
+
+  <div id="hud"></div>
+  <div id="ghost"><div class="pill">Platzieren …</div></div>
+  <div id="warn">WebGL/Skripte nicht geladen. Bitte README lesen.</div>
+
+  <!-- ESM Boot: lädt lokale Module und macht THREE global zugänglich -->
+  <script type="module" src="boot.js"></script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3D Kleinstadt Simulation – Offline (ESM)</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    #ui {
+      position: fixed; top: 12px; left: 12px; z-index: 10;
+      display: flex; flex-direction: column; gap: 8px; 
+      background: rgba(255,255,255,0.9); padding: 12px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      backdrop-filter: blur(6px);
+      user-select: none;
+    }
+    #ui h1 { font-size: 16px; margin: 0 0 4px 0; }
+    #ui .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tool { 
+      border: 1px solid rgba(0,0,0,0.15); border-radius: 10px; padding: 8px 10px; 
+      background: white; cursor: grab; font-weight: 600;
+    }
+    .tool:active { cursor: grabbing; }
+    .tool.active { background: #101828; color: #fff; }
+    button.ctrl { border: 1px solid rgba(0,0,0,0.15); border-radius: 10px; padding: 8px 10px; background: white; font-weight: 600; cursor: pointer; }
+    #legend {
+      position: fixed; bottom: 12px; left: 12px; z-index: 10;
+      background: rgba(255,255,255,0.9); padding: 10px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      width: 280px; font-size: 12px;
+    }
+    #legend .bar { height: 12px; background: linear-gradient(90deg, #d92d20 0%, #f79009 40%, #12b76a 100%); border-radius: 6px; margin: 6px 0; }
+    #hud { position: fixed; top: 12px; right: 12px; z-index: 10; background: rgba(0,0,0,0.65); color: #fff; padding: 10px 12px; border-radius: 10px; font-size: 12px; line-height: 1.3; max-width: 380px; }
+    #ghost { position: fixed; pointer-events: none; z-index: 12; display: none; }
+    #ghost .pill { background: rgba(16,24,40,.9); color: #fff; padding: 6px 10px; border-radius: 999px; font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.2); }
+    #warn { position: fixed; bottom: 12px; right: 12px; background: rgba(0,0,0,.75); color:#fff; padding:8px 10px; border-radius:8px; font-size:12px; z-index:10; display:none;}
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <h1>3D-Kleinstadt – Ziehen, Platzieren & Bewerten</h1>
+    <div class="row">
+      <div id="tool-fire" class="tool" draggable="true" title="Ziehen & in die Stadt fallen lassen (Radius 2000 m)">🚒 Feuerwache</div>
+      <div id="tool-kita" class="tool" draggable="true" title="Ziehen & in die Stadt fallen lassen (Radius 100 m)">👶 Kita</div>
+      <div id="tool-school" class="tool" draggable="true" title="Ziehen & in die Stadt fallen lassen (Radius 600 m)">🏫 Schule</div>
+      <button id="erase" class="ctrl" title="Letztes Gebäude entfernen">↩︎ Rückgängig</button>
+      <button id="reset" class="ctrl" title="Alles zurücksetzen">🗑️ Reset</button>
+    </div>
+    <div style="font-size:12px;opacity:.85;margin-top:4px;">
+      Tipp: Werkzeug <b>ziehen & fallen lassen</b> – oder Werkzeug anklicken und dann in die Karte <b>klicken</b>. Maus ziehen/scrollen: Kamera.
+    </div>
+  </div>
+
+  <div id="legend">
+    <div><strong>Zufriedenheits-Heatmap</strong> (sofort aktualisiert)</div>
+    <div class="bar"></div>
+    <div style="display:flex; justify-content:space-between;">
+      <span>niedrig</span><span>mittel</span><span>hoch</span>
+    </div>
+    <div style="margin-top:6px; opacity:.8;">
+      Anteil erfüllter Bedürfnisse (🚒, 👶, 🏫) je Kachel.
+    </div>
+  </div>
+
+  <div id="hud"></div>
+  <div id="ghost"><div class="pill">Platzieren …</div></div>
+  <div id="warn">WebGL/Skripte nicht geladen. Bitte README lesen.</div>
+
+  <!-- ESM Boot: lädt lokale Module und macht THREE global zugänglich -->
+  <script src="lib/three.min.js"></script>
+  <script src="lib/OrbitControls.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
